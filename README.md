@@ -48,7 +48,7 @@ This is a simple RESTful API for managing tasks. The application is fully contai
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/naPOME/task-manager.git
     cd task-manager
     ```
 

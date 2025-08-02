@@ -11,9 +11,6 @@ class Database
         $this->initialize();
     }
 
-    /**
-     * Get PDO database connection
-     */
     public function getConnection(): PDO
     {
         if ($this->connection === null) {
@@ -22,22 +19,15 @@ class Database
         return $this->connection;
     }
 
-    /**
-     * Initialize database and create tables if they don't exist
-     */
     public function initialize(): void
     {
         $this->connect();
         $this->createTables();
     }
 
-    /**
-     * Establish PDO connection to SQLite database
-     */
     private function connect(): void
     {
         try {
-            // Ensure the storage directory exists
             $storageDir = dirname($this->databasePath);
             if (!is_dir($storageDir)) {
                 mkdir($storageDir, 0755, true);
@@ -46,11 +36,9 @@ class Database
             $dsn = 'sqlite:' . $this->databasePath;
             $this->connection = new PDO($dsn);
             
-            // Set PDO attributes for better error handling
             $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             
-            // Enable foreign key constraints
             $this->connection->exec('PRAGMA foreign_keys = ON');
             
         } catch (PDOException $e) {
@@ -58,17 +46,11 @@ class Database
         }
     }
 
-    /**
-     * Create database tables by running migration files
-     */
     private function createTables(): void
     {
         $this->runMigrations();
     }
 
-    /**
-     * Run all migration files in the migrations directory
-     */
     private function runMigrations(): void
     {
         $migrationsDir = __DIR__ . '/migrations';
@@ -92,9 +74,6 @@ class Database
         }
     }
 
-    /**
-     * Check if database connection is working
-     */
     public function isConnected(): bool
     {
         try {

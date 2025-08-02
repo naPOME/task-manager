@@ -14,30 +14,23 @@ class TaskController
         $this->validator = new Validator();
     }
 
-    /**
-     * Handle POST /tasks - Create a new task
-     */
     public function create(): void
     {
         try {
             $requestData = $this->getRequestBody();
-            
             if ($requestData === null) {
                 $this->sendError(400, 'Invalid JSON in request body', 'INVALID_JSON');
                 return;
             }
 
-            // Sanitize input data
             $requestData = $this->validator->sanitizeData($requestData);
 
-            // Validate task data
             $validationErrors = $this->validator->validateTaskData($requestData, false);
             if (!empty($validationErrors)) {
                 $this->sendValidationError($validationErrors);
                 return;
             }
 
-            // Create the task
             $task = $this->taskModel->create($requestData);
             $this->sendResponse(201, $task);
 
@@ -52,15 +45,10 @@ class TaskController
         }
     }
 
-    /**
-     * Handle GET /tasks - Get all tasks with optional filtering
-     */
     public function getAll(): void
     {
         try {
             $filters = [];
-            
-            // Check for status filter in query parameters
             if (isset($_GET['status'])) {
                 $statusError = $this->validator->validateStatusFilter($_GET['status']);
                 if ($statusError !== null) {
@@ -84,13 +72,9 @@ class TaskController
         }
     }
 
-    /**
-     * Handle GET /tasks/{id} - Get a specific task by ID
-     */
     public function getById(int $id): void
     {
         try {
-            // Validate ID
             $idError = $this->validator->validateId($id);
             if ($idError !== null) {
                 $this->sendError(400, $idError, 'INVALID_ID');
@@ -98,7 +82,6 @@ class TaskController
             }
 
             $task = $this->taskModel->findById($id);
-            
             if ($task === null) {
                 $this->sendError(404, 'Task not found', 'NOT_FOUND');
                 return;
@@ -117,13 +100,9 @@ class TaskController
         }
     }
 
-    /**
-     * Handle PUT /tasks/{id} - Update an existing task
-     */
     public function update(int $id): void
     {
         try {
-            // Validate ID
             $idError = $this->validator->validateId($id);
             if ($idError !== null) {
                 $this->sendError(400, $idError, 'INVALID_ID');
@@ -131,25 +110,20 @@ class TaskController
             }
 
             $requestData = $this->getRequestBody();
-            
             if ($requestData === null) {
                 $this->sendError(400, 'Invalid JSON in request body', 'INVALID_JSON');
                 return;
             }
 
-            // Sanitize input data
             $requestData = $this->validator->sanitizeData($requestData);
 
-            // Validate task data for update
             $validationErrors = $this->validator->validateTaskData($requestData, true);
             if (!empty($validationErrors)) {
                 $this->sendValidationError($validationErrors);
                 return;
             }
 
-            // Update the task
             $task = $this->taskModel->update($id, $requestData);
-            
             if ($task === null) {
                 $this->sendError(404, 'Task not found', 'NOT_FOUND');
                 return;
@@ -168,13 +142,9 @@ class TaskController
         }
     }
 
-    /**
-     * Get and parse request body as JSON
-     */
     private function getRequestBody(): ?array
     {
         $input = file_get_contents('php://input');
-        
         if (empty($input)) {
             return [];
         }
@@ -187,29 +157,21 @@ class TaskController
         return is_array($data) ? $data : null;
     }
 
-    /**
-     * Send JSON response
-     */
     private function sendResponse(int $statusCode, $data): void
     {
         if (!headers_sent()) {
             http_response_code($statusCode);
             header('Content-Type: application/json');
         }
-        
         echo json_encode($data, JSON_PRETTY_PRINT);
     }
 
-    /**
-     * Send error response
-     */
     private function sendError(int $statusCode, string $message, string $errorCode = null): void
     {
         if (!headers_sent()) {
             http_response_code($statusCode);
             header('Content-Type: application/json');
         }
-        
         echo json_encode([
             'error' => true,
             'message' => $message,
@@ -217,9 +179,49 @@ class TaskController
         ], JSON_PRETTY_PRINT);
     }
 
-    /**
-     * Send validation error response
-     */
+    private function sendValidationError(array $errors): void
+    {
+        if (!headers_sent()) {
+            http_response_code(422);
+            header('Content-Type: application/json');
+        }
+        echo json_encode([
+            'error' => true,
+            'message' => 'Validation failed',
+            'errors' => $errors
+        ], JSON_PRETTY_PRINT);
+    }
+
+    private function getErrorCode(int $statusCode): string
+    {
+        return match ($statusCode) {
+            400 => 'BAD_REQUEST',
+            404 => 'NOT_FOUND',
+            405 => 'METHOD_NOT_ALLOWED',
+            422 => 'UNPROCESSABLE_ENTITY',
+            default => 'INTERNAL_SERVER_ERROR',
+        };
+    }
+}
+
+    }
+
+    private function getErrorCode(int $statusCode): string
+    {
+        return match ($statusCode) {
+            400 => 'BAD_REQUEST',
+            404 => 'NOT_FOUND',
+            405 => 'METHOD_NOT_ALLOWED',
+            422 => 'UNPROCESSABLE_ENTITY',
+            default => 'INTERNAL_SERVER_ERROR',
+        };
+    }
+}
+
+        ], JSON_PRETTY_PRINT);
+    }
+
+
     private function sendValidationError(array $errors): void
     {
         if (!headers_sent()) {

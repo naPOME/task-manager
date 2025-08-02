@@ -6,8 +6,7 @@ class Task
 {
     private $database;
     private $connection;
-    
-    // Valid status values
+
     private const VALID_STATUSES = ['pending', 'in-progress', 'completed'];
 
     public function __construct(Database $database)
@@ -16,34 +15,20 @@ class Task
         $this->connection = $database->getConnection();
     }
 
-    /**
-     * Create a new task
-     * 
-     * @param array $data Task data (title, description, status)
-     * @return array Created task with ID and timestamps
-     * @throws Exception If validation fails or database error occurs
-     */
     public function create(array $data): array
     {
-        // Validate required fields
         if (empty($data['title'])) {
             throw new InvalidArgumentException('Title is required');
         }
-
-        // Set default status if not provided
         $status = $data['status'] ?? 'pending';
         
-        // Validate status
         if (!$this->validateStatus($status)) {
             throw new InvalidArgumentException('Invalid status. Must be one of: ' . implode(', ', self::VALID_STATUSES));
         }
-
-        // Validate title length
         if (strlen($data['title']) > 255) {
             throw new InvalidArgumentException('Title must not exceed 255 characters');
         }
 
-        // Validate description length if provided
         if (isset($data['description']) && strlen($data['description']) > 1000) {
             throw new InvalidArgumentException('Description must not exceed 1000 characters');
         }
@@ -61,7 +46,6 @@ class Task
             
             $taskId = $this->connection->lastInsertId();
             
-            // Return the created task
             return $this->findById((int)$taskId);
             
         } catch (PDOException $e) {
@@ -69,20 +53,12 @@ class Task
         }
     }
 
-    /**
-     * Find all tasks with optional filtering
-     * 
-     * @param array $filters Optional filters (status)
-     * @return array Array of tasks
-     * @throws Exception If database error occurs
-     */
     public function findAll(array $filters = []): array
     {
         try {
             $sql = "SELECT * FROM tasks";
             $params = [];
             
-            // Add status filter if provided
             if (!empty($filters['status'])) {
                 if (!$this->validateStatus($filters['status'])) {
                     throw new InvalidArgumentException('Invalid status filter. Must be one of: ' . implode(', ', self::VALID_STATUSES));
@@ -98,7 +74,6 @@ class Task
             
             $tasks = $stmt->fetchAll();
             
-            // Format all tasks
             return array_map([$this, 'formatTask'], $tasks);
             
         } catch (PDOException $e) {
@@ -106,13 +81,6 @@ class Task
         }
     }
 
-    /**
-     * Find a task by ID
-     * 
-     * @param int $id Task ID
-     * @return array|null Task data or null if not found
-     * @throws Exception If database error occurs
-     */
     public function findById(int $id): ?array
     {
         try {
@@ -134,23 +102,12 @@ class Task
         }
     }
 
-    /**
-     * Update an existing task
-     * 
-     * @param int $id Task ID
-     * @param array $data Updated task data
-     * @return array|null Updated task data or null if not found
-     * @throws Exception If validation fails or database error occurs
-     */
     public function update(int $id, array $data): ?array
     {
-        // Check if task exists
         $existingTask = $this->findById($id);
         if ($existingTask === null) {
             return null;
         }
-
-        // Validate data if provided
         if (isset($data['title'])) {
             if (empty($data['title'])) {
                 throw new InvalidArgumentException('Title cannot be empty');
@@ -169,7 +126,6 @@ class Task
         }
 
         try {
-            // Build dynamic update query
             $updateFields = [];
             $params = [':id' => $id];
             
@@ -188,11 +144,9 @@ class Task
                 $params[':status'] = $data['status'];
             }
 
-            // Always update the updated_at timestamp
             $updateFields[] = 'updated_at = :updated_at';
             $params[':updated_at'] = date('Y-m-d H:i:s');
             
-            // If no fields to update, return existing task
             if (empty($updateFields)) {
                 return $existingTask;
             }
@@ -201,7 +155,6 @@ class Task
             $stmt = $this->connection->prepare($sql);
             $stmt->execute($params);
             
-            // Return updated task
             return $this->findById($id);
             
         } catch (PDOException $e) {
@@ -209,13 +162,6 @@ class Task
         }
     }
 
-    /**
-     * Delete a task by ID
-     * 
-     * @param int $id Task ID
-     * @return bool True if deleted, false if not found
-     * @throws Exception If database error occurs
-     */
     public function delete(int $id): bool
     {
         try {
